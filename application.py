@@ -1,9 +1,10 @@
 import os
 
-from flask import Flask, session, render_template, request
+from flask import Flask, session, render_template, request, redirect
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
+from tools import login_required
 
 app = Flask(__name__)
 
@@ -22,6 +23,7 @@ db = scoped_session(sessionmaker(bind=engine))
 
 
 @app.route("/")
+@login_required
 def index():
     return render_template("index.html")
 
@@ -36,27 +38,26 @@ def login():
     if request.method == "POST":
 
         # Ensure username was submitted
-        if not request.form.get("username"):
+        if request.form.get("username") == None:
             return render_template("error.html", message="must provide username")
 
         # Ensure password was submitted
-        elif not request.form.get("password"):
+        elif request.form.get("password") == None:
             return render_template("error.html", message="must provide password")
 
-        # Query database for username (http://zetcode.com/db/sqlalchemy/rawsql/)
-        # https://docs.sqlalchemy.org/en/latest/core/connections.html#sqlalchemy.engine.ResultProxy
-        rows = db.execute("SELECT * FROM users WHERE username = :username",
+        # Query database for account details
+        rows = db.execute("SELECT * FROM public.user WHERE username = :username",
                             {"username": username})
 
-        result = rows.fetchone()
+        acc_details = rows.fetchone()
 
         # Ensure username exists and password is correct
-        if result == None or not check_password_hash(result[2], request.form.get("password")):
+        if acc_details == None or acc_details[1] != request.form.get("password"):
             return render_template("error.html", message="invalid username and/or password")
 
         # Remember which user has logged in
-        session["user_id"] = result[0]
-        session["user_name"] = result[1]
+        session["user_id"] = acc_details[0] # needs fixing
+        session["user_name"] = acc_details[0]
 
         # Redirect user to home page
         return redirect("/")
@@ -113,3 +114,13 @@ def register():
     # User reached route via GET (as by clicking a link or via redirect)
     else:
         return render_template("register.html")
+
+@app.route("/logout")
+def logout():
+    """ Log user out """
+
+    # Forget any user ID
+    session.clear()
+
+    # Redirect user to login form
+    return redirect("/")
