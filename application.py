@@ -46,18 +46,18 @@ def login():
             return render_template("error.html", message="must provide password")
 
         # Query database for account details
-        rows = db.execute("SELECT * FROM public.user WHERE username = :username",
+        rows = db.execute("SELECT * FROM public.users WHERE username = :username",
                             {"username": username})
 
         acc_details = rows.fetchone()
 
         # Ensure username exists and password is correct
-        if acc_details == None or acc_details[1] != request.form.get("password"):
+        if acc_details == None or acc_details[2] != request.form.get("password"):
             return render_template("error.html", message="invalid username and/or password")
 
         # Remember which user has logged in
-        session["user_id"] = acc_details[0] # needs fixing
-        session["user_name"] = acc_details[0]
+        session["user_id"] = acc_details[0]
+        session["user_name"] = acc_details[1]
 
         # Redirect user to home page
         return redirect("/")
@@ -81,7 +81,7 @@ def register():
             return render_template("error.html", message="must provide username")
 
         # Query database for username
-        userCheck = db.execute("SELECT * FROM public.user WHERE username = :username",
+        userCheck = db.execute("SELECT * FROM public.users WHERE username = :username",
                           {"username":request.form.get("username")}).fetchone()
 
         # Check if username already exist
@@ -101,7 +101,7 @@ def register():
             return render_template("error.html", message="passwords didn't match")
 
         # Insert register into DB
-        db.execute("INSERT INTO public.user (username, password) VALUES (:username, :password)",
+        db.execute("INSERT INTO public.users (username, password) VALUES (:username, :password)",
                             {"username":request.form.get("username"),
                              "password":request.form.get("password")})
 
