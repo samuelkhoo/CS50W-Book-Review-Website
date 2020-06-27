@@ -1,0 +1,55 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {{bookInfo[0]['title']}}
+{% endblock %}
+
+{% block content %}
+
+    <div>
+        <div>
+            <h1>{{bookInfo[0]['title']}}</h1>
+            <h5><b>Author:</b> {{bookInfo[0]['author']}}</h5>
+            <h5><b>Published</b>: {{bookInfo[0]['year']}}</h5>
+            <h5><b>ISBN:</b> {{bookInfo[0]['isbn']}}</h5>
+            <h5><b>Average Goodreads Rating:</b> {{bookInfo[1]['average_rating']}}</h5>
+            <h5><b>Number of Ratings from Goodreads:</b> {{bookInfo[1]['work_ratings_count']}}</h5>
+        </div>
+    </div>
+    <div class="dropdown-divider"></div>
+    <!-- REVIEW FORM -->
+    <form method="POST">
+        <h5>Write a review:</h5>
+        <div class="input-group">
+            <textarea name="review" id="review" class="form-control" rows="1" required></textarea>
+        </div>
+        <h5></h5>
+        <h5>Rate this book:</h5>
+        <div class="form-group">
+            <select id="rating" name="rating" class="form-control" required>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option selected value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+        <h5></h5>
+        <div>
+            <button class="btn btn-success" type="submit">Submit</button>
+        </div>
+    </form>
+    <div class="dropdown-divider"></div>
+        <h3> Reviews </h3>
+        {% for r in reviews %}
+        <div class="list-group">
+            <a href="#" class="list-group-item list-group-item-action flex-column align-items-start">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{r['username']}} gave {{r['rating']}}/5</h6>
+                </div>
+                <p class="mb-1">{{r['review']}}</p>
+            </a>
+        </div>
+        {% endfor %}
+
+{% endblock %}
