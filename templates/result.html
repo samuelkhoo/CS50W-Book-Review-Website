@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Results
+{% endblock %}
+
+{% block content %}
+<center>
+  <h1>Results for: "{{request.args.get("book")}}"</h1><br>
+    {% for book in books %}
+      <h1><a href="/book/{{book['isbn']}}"><i>{{book['title']}}</i> - {{book['author']}} ({{book['year']}})</a></h1>
+      <h5>ISBN: {{book['isbn']}}</h5>
+    {% endfor %}
+</center>
+{% endblock %}
