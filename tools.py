@@ -1,10 +1,9 @@
 from flask import redirect, render_template, request, session
 from functools import wraps
 
+# Login Required Decorator
+# https://flask.palletsprojects.com/en/1.0.x/patterns/viewdecorators/
 def login_required(f):
-    """
-    Login Required Decorator from https://flask.palletsprojects.com/en/1.0.x/patterns/viewdecorators/
-    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if session.get("user_id") is None:
