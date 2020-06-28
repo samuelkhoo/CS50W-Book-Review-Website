@@ -1,19 +1,19 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    {{bookInfo[0]['title']}}
+    {{book_info[0]['title']}}
 {% endblock %}
 
 {% block content %}
 
     <div>
         <div>
-            <h1>{{bookInfo[0]['title']}}</h1>
-            <h5><b>Author:</b> {{bookInfo[0]['author']}}</h5>
-            <h5><b>Published</b>: {{bookInfo[0]['year']}}</h5>
-            <h5><b>ISBN:</b> {{bookInfo[0]['isbn']}}</h5>
-            <h5><b>Average Goodreads Rating:</b> {{bookInfo[1]['average_rating']}}</h5>
-            <h5><b>Number of Ratings from Goodreads:</b> {{bookInfo[1]['work_ratings_count']}}</h5>
+            <h1>{{book_info[0]['title']}}</h1>
+            <h5><b>Author:</b> {{book_info[0]['author']}}</h5>
+            <h5><b>Published</b>: {{book_info[0]['year']}}</h5>
+            <h5><b>ISBN:</b> {{book_info[0]['isbn']}}</h5>
+            <h5><b>Average Goodreads Rating:</b> {{book_info[1]['average_rating']}}</h5>
+            <h5><b>Number of Ratings from Goodreads:</b> {{book_info[1]['work_ratings_count']}}</h5>
         </div>
     </div>
     <div class="dropdown-divider"></div>

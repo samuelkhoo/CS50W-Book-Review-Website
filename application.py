@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, session, render_template, request, redirect, flash
+from flask import Flask, session, render_template, request, redirect, flash, jsonify
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -30,12 +30,12 @@ def register():
     # Make sure that it is a new session
     session.clear()
 
-    # User reached route via POST (as by submitting a form via POST)
+    # Submit registration request
     if request.method == "POST":
 
         # Ensure username was submitted
         if not request.form.get("username"):
-            return render_template("error.html", message="must provide username")
+            return render_template("error.html", message="Username not provided")
 
         # Query database for username
         userCheck = db.execute("SELECT * FROM public.users WHERE username = :username",
@@ -43,19 +43,19 @@ def register():
 
         # Check if username already exist
         if userCheck:
-            return render_template("error.html", message="username already exist")
+            return render_template("error.html", message="Username already taken")
 
         # Ensure password was submitted
         if not request.form.get("password"):
-            return render_template("error.html", message="must provide password")
+            return render_template("error.html", message="Password not provided")
 
         # Ensure confirmation was submitted
         elif not request.form.get("confirmation"):
-            return render_template("error.html", message="must confirm password")
+            return render_template("error.html", message="Password not confirmed")
 
         # Check passwords are equal
         elif not request.form.get("password") == request.form.get("confirmation"):
-            return render_template("error.html", message="passwords didn't match")
+            return render_template("error.html", message="Passwords do not match")
 
         # Insert register into DB
         db.execute("INSERT INTO public.users (username, password) VALUES (:username, :password)",
@@ -68,7 +68,7 @@ def register():
         # Redirect user to login page
         return redirect("/login")
 
-    # User reached route via GET (as by clicking a link or via redirect)
+    # View register page
     else:
         return render_template("register.html")
 
@@ -80,16 +80,16 @@ def login():
 
     username = request.form.get("username")
 
-    # User reached route via POST (as by submitting a form via POST)
+    # Submit login attempt
     if request.method == "POST":
 
         # Ensure username was submitted
         if request.form.get("username") == None:
-            return render_template("error.html", message="must provide username")
+            return render_template("error.html", message="Username not provided")
 
         # Ensure password was submitted
         elif request.form.get("password") == None:
-            return render_template("error.html", message="must provide password")
+            return render_template("error.html", message="Password not provided")
 
         # Query database for account details
         rows = db.execute("SELECT * FROM public.users WHERE username = :username",
@@ -99,16 +99,16 @@ def login():
 
         # Ensure username exists and password is correct
         if acc_details == None or acc_details[2] != request.form.get("password"):
-            return render_template("error.html", message="invalid username and/or password")
+            return render_template("error.html", message="Username and/or password is incorrect")
 
         # Remember which user has logged in
         session["user_id"] = acc_details[0]
         session["user_name"] = acc_details[1]
 
-        # Redirect user to home page
+        # Redirect user to index page
         return redirect("/")
 
-    # User reached route via GET (as by clicking a link or via redirect)
+    # View login page
     else:
         return render_template("login.html")
 
@@ -125,20 +125,20 @@ def search():
 
     # Check book id was provided
     if not request.args.get("book"):
-        return render_template("error.html", message="you must provide a book.")
+        return render_template("error.html", message="Book not provided")
 
-    # Take input and add a wildcard
+    # query
     q = "%" + request.args.get("book") + "%"
 
-    # Capitalize all words of input for search
+    # Capitalize all letters so that search is not case sensitive
     q = q.title()
 
     result = db.execute("SELECT isbn, title, author, year, id FROM books WHERE isbn LIKE :q OR title LIKE :q OR author LIKE :q OR year LIKE :q",
                 {"q": q})
 
-    # Books not founded
+    # Handle no results
     if result.rowcount == 0:
-        return render_template("error.html", message="we can't find books with that description.")
+        return render_template("error.html", message="Book not found")
 
     # Fetch all the results
     books = result.fetchall()
@@ -149,8 +149,7 @@ def search():
 @app.route("/book/<isbn>", methods=['GET','POST'])
 @login_required
 def book(isbn):
-    """ Save user review and load same page with reviews updated."""
-
+    # Submit book review
     if request.method == "POST":
 
         # Save current user info
@@ -160,7 +159,6 @@ def book(isbn):
         rating = int(request.form.get("rating"))
         review = request.form["review"]
 
-        print(review)
         # Search book_id by ISBN
         row = db.execute("SELECT id FROM books WHERE isbn = :isbn",
                         {"isbn": isbn})
@@ -176,7 +174,7 @@ def book(isbn):
 
         if row2.rowcount == 1:
 
-            flash('You already submitted a review for this book')
+            flash('Review submitted before. Only one review can be submitted.')
             return redirect("/book/" + isbn)
 
         db.execute("INSERT INTO reviews (user_id, book_id, review, rating) VALUES (:user_id, :book_id, :review, :rating)",
@@ -189,7 +187,7 @@ def book(isbn):
 
         return redirect("/book/" + isbn)
 
-    # Take the book ISBN and redirect to his page (GET)
+    # View book page
     else:
 
         row = db.execute("SELECT isbn, title, author, year FROM books WHERE \
@@ -201,24 +199,21 @@ def book(isbn):
         # Read API key from env variable
         key = "xAwinsHHQuJPipsPWJu9w"
 
-        # Query the api with key and ISBN as parameters
+        # Query the goodreads api
         query = requests.get("https://www.goodreads.com/book/review_counts.json",
                 params={"key": key, "isbns": isbn})
 
         # Convert the response to JSON
         response = query.json()
 
-        # "Clean" the JSON before passing it to the bookInfo list
-        response = response['books'][0]
+        # Append it to book_info
+        book_info.append(response['books'][0])
 
-        # Append it as the second element on the list. [1]
-        book_info.append(response)
-
-         # Search book_id by ISBN
+         # Get book_id from database using ISBN
         row = db.execute("SELECT id FROM books WHERE isbn = :isbn",
                         {"isbn": isbn})
 
-        # Save id into variable
+        # Save book_id as a variable
         book = row.fetchone()[0]
 
         # Fetch book reviews
@@ -227,15 +222,37 @@ def book(isbn):
 
         reviews = results.fetchall()
 
-        return render_template("book.html", bookInfo=book_info, reviews=reviews)
+        return render_template("book.html", book_info=book_info, reviews=reviews)
 
 # logout
 @app.route("/logout")
 def logout():
-    """ Log user out """
 
     # Forget any user ID
     session.clear()
 
     # Redirect user to login form
     return redirect("/")
+
+# api
+@app.route("/api/<isbn>", methods=['GET'])
+@login_required
+def api_call(isbn):
+
+    query = db.execute("SELECT title, author, year, isbn, COUNT(reviews.id) as review_count, AVG(reviews.rating) as average_score FROM books INNER JOIN reviews ON books.id = reviews.book_id WHERE isbn = :isbn GROUP BY title, author, year, isbn",
+                    {"isbn": isbn})
+
+    # Handle error
+    if query.rowcount !=1:
+        return jsonify({"Error": "Invalid ISBN"}), 404
+
+    # Get result
+    row = query.fetchone()
+
+    # Convert to dict
+    result = dict(row.items())
+
+    # Round average_score to 2 decimal
+    result['average_score'] = float('%.2f'%(result['average_score']))
+
+    return jsonify(result)
